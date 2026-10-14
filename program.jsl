@@ -1,0 +1,11 @@
+ //точка входа как кефир с мускатом, или наоборот???
+import System.*;
+import System.Windows.Forms.*;
+
+public class Program
+{
+	public static void main(String[] args)
+	{
+		Application.Run(new Form1());
+	}
+}

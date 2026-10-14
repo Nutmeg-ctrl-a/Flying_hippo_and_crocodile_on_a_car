@@ -1,0 +1,165 @@
+import System.*;
+import System.Drawing.*;
+import System.Windows.Forms.*;
+import System.Collections.*;
+import java.util.Random;
+
+public class Form1 extends Form
+{
+    static int W = 800;
+    static int H = 500;
+
+    int hipoX = 120;
+    int hipoY = 250;
+    double hipoVy = 0;
+    double GRAVITY = 0.5;
+    double LIFT = -9;
+
+    ArrayList crocs = new ArrayList();
+    Random rnd = new Random();
+    int spawnTimer = 0;
+
+    int score = 0;
+    boolean gameOver = false;
+    Timer timer;
+
+    public Form1()
+    {
+        this.set_Text("Летающие бегемоты и крокодилы на машинах");
+        this.set_ClientSize(new Size(W, H));
+        this.set_BackColor(Color.FromArgb(135, 206, 235));
+        this.set_KeyPreview(true);
+
+        this.add_KeyDown(new KeyEventHandler(this.Form1_KeyDown));
+        this.add_Paint(new PaintEventHandler(this.Form1_Paint));
+
+        timer = new Timer();
+        timer.set_Interval(16);
+        timer.add_Tick(new EventHandler(this.Form1_Tick));
+        timer.Start();
+    }
+
+    void Form1_Tick(Object sender, EventArgs e)
+    {
+        if (!gameOver)
+        {
+            // физика — БЕЗ приведения гравитации к int
+            hipoVy += GRAVITY;
+            hipoY += (int) hipoVy;
+
+            if (hipoY < 0) { hipoY = 0; hipoVy = 0; }
+            if (hipoY > H - 60) { hipoY = H - 60; gameOver = true; }
+
+            spawnTimer++;
+            if (spawnTimer > 60)
+            {
+                spawnCroc();
+                spawnTimer = 0;
+            }
+
+            Rectangle hipoRect = new Rectangle(hipoX, hipoY, 90, 60);
+            for (int i = crocs.get_Count() - 1; i >= 0; i--)
+            {
+                int[] c = (int[]) crocs.get_Item(i);
+                c[0] -= c[2];
+
+                if (c[0] < -90)
+                {
+                    crocs.RemoveAt(i);
+                    score++;
+                    continue;
+                }
+
+                Rectangle crocRect = new Rectangle(c[0] + 10, c[1], 70, 55);
+                if (hipoRect.IntersectsWith(crocRect))
+                {
+                    gameOver = true;
+                }
+            }
+        }
+        this.Invalidate();
+    }
+
+    void spawnCroc()
+    {
+        int y = H - 70 - 55;
+        int[] c = new int[3];
+        c[0] = W;
+        c[1] = y;
+        c[2] = 4 + rnd.nextInt(5);
+        crocs.Add(c);
+    }
+
+    void Form1_KeyDown(Object sender, KeyEventArgs e)
+    {
+        if (e.get_KeyCode() == Keys.Space || e.get_KeyCode() == Keys.Up)
+        {
+            if (gameOver)
+            {
+                hipoY = H / 2;
+                hipoVy = 0;
+                crocs.Clear();
+                score = 0;
+                gameOver = false;
+            }
+            else
+            {
+                hipoVy = LIFT;   // без приведения к int
+            }
+        }
+    }
+
+    void Form1_Paint(Object sender, PaintEventArgs e)
+    {
+        Graphics g = e.get_Graphics();
+
+        SolidBrush earthBrush = new SolidBrush(Color.FromArgb(100, 180, 100));
+        g.FillRectangle(earthBrush, 0, H - 40, W, 40);
+
+        for (int i = 0; i < crocs.get_Count(); i++)
+        {
+            int[] c = (int[]) crocs.get_Item(i);
+            drawCroc(g, c);
+        }
+
+        drawHipo(g);
+
+        Font f = new Font("Arial", 24, FontStyle.Bold);
+        SolidBrush blackBrush = new SolidBrush(Color.get_Black());
+        g.DrawString("Очки: " + score, f, blackBrush, 20, 20);
+
+        if (gameOver)
+        {
+            SolidBrush redBrush = new SolidBrush(Color.get_Red());
+            g.DrawString("Игра окончена! Пробел - заново",
+                f, redBrush, W / 2 - 220, H / 2);
+        }
+    }
+
+    void drawHipo(Graphics g)
+    {
+        g.FillEllipse(new SolidBrush(Color.FromArgb(150, 120, 200)), hipoX, hipoY, 90, 60);
+        g.FillEllipse(new SolidBrush(Color.FromArgb(170, 140, 220)), hipoX + 60, hipoY, 50, 50);
+        g.FillEllipse(new SolidBrush(Color.get_White()), hipoX + 85, hipoY + 10, 12, 12);
+        g.FillEllipse(new SolidBrush(Color.get_Black()), hipoX + 89, hipoY + 12, 6, 6);
+
+        Point[] wing = new Point[3];
+        wing[0] = new Point(hipoX + 30, hipoY + 10);
+        wing[1] = new Point(hipoX + 10, hipoY - 30);
+        wing[2] = new Point(hipoX + 55, hipoY + 5);
+        g.FillPolygon(new SolidBrush(Color.FromArgb(200, 180, 240)), wing);
+    }
+
+    void drawCroc(Graphics g, int[] c)
+    {
+        int x = c[0];
+        int y = c[1];
+
+        g.FillRectangle(new SolidBrush(Color.FromArgb(200, 50, 50)), x, y + 30, 90, 25);
+        g.FillEllipse(new SolidBrush(Color.FromArgb(30, 30, 30)), x + 15, y + 45, 20, 20);
+        g.FillEllipse(new SolidBrush(Color.FromArgb(30, 30, 30)), x + 60, y + 45, 20, 20);
+
+        g.FillEllipse(new SolidBrush(Color.FromArgb(60, 160, 60)), x + 10, y, 70, 35);
+        g.FillEllipse(new SolidBrush(Color.FromArgb(255, 255, 0)), x + 60, y + 8, 10, 10);
+    }
+}
